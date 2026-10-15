@@ -1,2 +1,4 @@
 #[derive(Debug)]
-pub struct HandleErr;
+pub struct SerialHandleErr(pub &'static str);
+#[derive(Debug)]
+pub struct SerialSendErr(pub &'static str);
