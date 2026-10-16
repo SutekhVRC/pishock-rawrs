@@ -3,9 +3,14 @@ use pishock_rawrs::handle::serial::{
 };
 use serde_json::Value;
 
-fn connect_serial() {
+fn remove_network() {
     let mut handle = PiShockSerialHandle::new("/dev/ttyUSB0").unwrap();
-    let res_data = handle.send_command(PiShockCommand::Info).unwrap();
+
+    let res_data = handle
+        .send_command(PiShockCommand::RemoveNetwork {
+            ssid: "PiShock".to_string(),
+        })
+        .unwrap();
 
     if let PiShockSerialCommandResponse::Data(res) = res_data {
         let j: Value = serde_json::from_str(res.as_str()).unwrap();
@@ -14,5 +19,5 @@ fn connect_serial() {
 }
 
 fn main() {
-    connect_serial();
+    remove_network();
 }

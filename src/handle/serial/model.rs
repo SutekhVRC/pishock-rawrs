@@ -93,16 +93,12 @@ impl TryFrom<&PiShockCommand> for AddNetworkValueModel {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RemoveNetworkValueModel {
-    ssid: String,
-}
+pub struct RemoveNetworkValueModel(String);
 impl TryFrom<&PiShockCommand> for RemoveNetworkValueModel {
     type Error = &'static str;
     fn try_from(value: &PiShockCommand) -> Result<Self, Self::Error> {
         match value {
-            PiShockCommand::RemoveNetwork { ssid } => Ok(Self {
-                ssid: ssid.to_string(),
-            }),
+            PiShockCommand::RemoveNetwork { ssid } => Ok(Self(ssid.to_string())),
             _ => Err("Unexpected command in PiShockCommand->RemoveNetworkValueModel conversion!"),
         }
     }

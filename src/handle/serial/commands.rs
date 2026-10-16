@@ -1,7 +1,3 @@
-use std::str::FromStr;
-
-use serde::{Deserialize, Serialize};
-
 use crate::handle::serial::model::{
     AddNetworkValueModel, PiShockCommandModel, PiShockOperateCommandModel, RemoveNetworkValueModel,
     TempConnectNetworkValueModel,
@@ -172,7 +168,9 @@ impl PiShockCommand {
     pub fn expect_response(&self) -> bool {
         match self {
             Self::Info => true,
-            _ => todo!(),
+            Self::AddNetwork { .. } => true,
+            Self::RemoveNetwork { .. } => true,
+            _ => false,
         }
     }
 }

@@ -13,7 +13,7 @@ serial2 = "0.2.38"
 name = "pishock_rawrs"
 
 [[example]]
-name = "connection_tx_rx"
+name = "get_info"
 
 [features]
 dynamic-tests = []

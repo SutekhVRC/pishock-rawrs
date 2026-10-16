@@ -1,10 +1,11 @@
 mod serial_tests {
 
     use crate::handle::serial::commands::{PiShockCommand, PiShockOperationParams};
-    use crate::handle::serial::{PiShockSerialCommandResponse, PiShockSerialHandle};
 
+    #[cfg(feature = "dynamic-tests")]
+    use crate::handle::serial::{PiShockSerialCommandResponse, PiShockSerialHandle};
     #[test]
-    #[cfg(feature = "dynamic_tests")]
+    #[cfg(feature = "dynamic-tests")]
     fn connect_serial() {
         let mut handle = PiShockSerialHandle::new("/dev/ttyUSB0").unwrap();
         let res_data = handle.send_command(PiShockCommand::Info).unwrap();
@@ -34,7 +35,7 @@ mod serial_tests {
         }
         .get_cmd_string();
 
-        let mut assert_str = r#"{"cmd":"removenetwork","value":{"ssid":"RAWR"}}"#.to_string();
+        let mut assert_str = r#"{"cmd":"removenetwork","value":"RAWR"}"#.to_string();
         assert_str.push_str("\r\n");
         assert_eq!(json_serd, assert_str);
     }

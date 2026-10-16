@@ -40,15 +40,34 @@ impl PiShockSerialHandle {
         let _device_node = serial_vdev.to_string();
         let _device_baud = 115200;
         if let Ok(device_connection) = SerialPort::open(serial_vdev, _device_baud) {
-            let handle = Self {
+            let mut handle = Self {
                 _device_node,
                 _device_baud,
                 device_connection,
             };
-            return Ok(handle);
+
+            if handle.prove_connection() {
+                return Ok(handle);
+            }
+            return Err(SerialHandleErr("Connection proof failure!"));
         };
 
         return Err(SerialHandleErr("Failed to connect to serial device!"));
+    }
+
+    fn prove_connection(&mut self) -> bool {
+        let mut retries = 1;
+        while retries >= 0 {
+            if let Ok(res_data) = self.send_command(PiShockCommand::Info) {
+                if let PiShockSerialCommandResponse::Data(res) = res_data {
+                    if let Ok(_) = serde_json::from_str::<serde_json::Value>(res.as_str()) {
+                        return true;
+                    };
+                }
+            };
+            retries -= 1;
+        }
+        return false;
     }
 
     fn check_port(port_list: Vec<PathBuf>, find_port: &str) -> Result<(), SerialHandleErr> {
@@ -92,7 +111,9 @@ impl PiShockSerialHandle {
     }
 
     fn parse_cmd_response(&self, mut response_data: Vec<u8>) -> Result<String, SerialParseErr> {
-        let res_offset = Self::find_pat(&response_data, b"TERMINALINFO: ").unwrap();
+        let Some(res_offset) = Self::find_pat(&response_data, b"TERMINALINFO: ") else {
+            return Err(SerialParseErr("No response delimeter found!"));
+        };
         response_data = response_data.split_at(res_offset).1.to_vec();
 
         if response_data.starts_with("TERMINALINFO: ".as_bytes()) {
@@ -117,7 +138,11 @@ impl PiShockSerialHandle {
     ) -> Result<PiShockSerialCommandResponse, SerialSendErr> {
         let cmd_data = match ps_cmd {
             PiShockCommand::Info => ps_cmd.get_cmd_string(),
-            _ => todo!(),
+            PiShockCommand::AddNetwork { .. } => ps_cmd.get_cmd_string(),
+            PiShockCommand::Operate { .. } => ps_cmd.get_cmd_string(),
+            PiShockCommand::RemoveNetwork { .. } => ps_cmd.get_cmd_string(),
+            PiShockCommand::Restart => ps_cmd.get_cmd_string(),
+            PiShockCommand::TempConnectNetwork { .. } => ps_cmd.get_cmd_string(),
         };
 
         self.device_connection
@@ -131,6 +156,9 @@ impl PiShockSerialHandle {
         }
 
         let response = self.recv_serial_buffer();
+        if response.is_empty() {
+            return Err(SerialSendErr("Response was empty!"));
+        }
         let Ok(response) = self.parse_cmd_response(response) else {
             return Err(SerialSendErr("Failed to parse cmd response!"));
         };
