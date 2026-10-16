@@ -9,7 +9,7 @@ fn send_shock() {
     let op_params = PiShockOperationParams::Shock {
         id: 1337,
         duration: 5000,
-        intensity: 30,
+        intensity: 10,
     };
     let res_data = handle
         .send_command(PiShockCommand::Operate { op: op_params })

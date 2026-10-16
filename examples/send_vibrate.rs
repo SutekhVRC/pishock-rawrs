@@ -9,7 +9,7 @@ fn send_vibrate() {
     let op_params = PiShockOperationParams::Vibrate {
         id: 1337,
         duration: 1000,
-        intensity: 50,
+        intensity: 100,
     };
     let res_data = handle
         .send_command(PiShockCommand::Operate { op: op_params })
