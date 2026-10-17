@@ -15,9 +15,22 @@ use crate::{
     handle::error::{SerialHandleErr, SerialParseErr, SerialSendErr},
 };
 
+use serde_json::Value;
+
 pub enum PiShockSerialCommandResponse {
     None,
     Data(String),
+}
+
+impl fmt::Display for PiShockSerialCommandResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Self::Data(res) = self {
+            let j: Value = serde_json::from_str(res.as_str()).unwrap();
+            write!(f, "{}", serde_json::to_string_pretty(&j).unwrap())
+        } else {
+            write!(f, "None")
+        }
+    }
 }
 
 #[derive(Debug)]
