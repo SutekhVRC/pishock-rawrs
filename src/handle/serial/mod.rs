@@ -59,10 +59,11 @@ impl PiShockSerialHandle {
                 device_connection,
             };
 
-            if handle.prove_connection() {
+            if !handle.prove_connection() {
+                return Err(SerialHandleErr("Connection proof failure!"));
+            } else {
                 return Ok(handle);
             }
-            return Err(SerialHandleErr("Connection proof failure!"));
         };
 
         return Err(SerialHandleErr("Failed to connect to serial device!"));
@@ -71,13 +72,17 @@ impl PiShockSerialHandle {
     fn prove_connection(&mut self) -> bool {
         let mut retries = 1;
         while retries >= 0 {
-            if let Ok(res_data) = self.send_command(PiShockCommand::Info) {
-                if let PiShockSerialCommandResponse::Data(res) = res_data {
-                    if let Ok(_) = serde_json::from_str::<serde_json::Value>(res.as_str()) {
-                        return true;
-                    };
+            match self.send_command(PiShockCommand::Info) {
+                Ok(res) => {
+                    if let PiShockSerialCommandResponse::Data(res) = res {
+                        if let Ok(_) = serde_json::from_str::<serde_json::Value>(res.as_str()) {
+                            return true;
+                        }
+                    }
                 }
-            };
+                Err(_) => (),
+            }
+
             retries -= 1;
         }
         return false;
@@ -98,16 +103,17 @@ impl PiShockSerialHandle {
         return Ok(());
     }
 
+    /*
     fn find_pat(data: &[u8], pat: &[u8]) -> Option<usize> {
         data.windows(pat.len()).position(|w| w == pat)
     }
+    */
 
     fn recv_serial_buffer(&self) -> Vec<u8> {
-        self.device_connection.discard_buffers().unwrap();
-        self.device_connection.flush().unwrap();
         let mut recvbuf = Vec::new();
+
         loop {
-            let mut buffer = [0; 256];
+            let mut buffer = [0; 1024];
             match self.device_connection.read(&mut buffer) {
                 Ok(bc) => {
                     if bc == 0 {
@@ -123,23 +129,33 @@ impl PiShockSerialHandle {
         recvbuf
     }
 
-    fn parse_cmd_response(&self, mut response_data: Vec<u8>) -> Result<String, SerialParseErr> {
-        let Some(res_offset) = Self::find_pat(&response_data, b"TERMINALINFO: ") else {
+    fn parse_cmd_response(&self, response_data: Vec<u8>) -> Result<String, SerialParseErr> {
+        let mut parse_str = match String::from_utf8(response_data.clone()) {
+            Ok(res) => res,
+            Err(_) => {
+                return Err(SerialParseErr(
+                    "Failed to parse serial response into String!",
+                ));
+            }
+        };
+        parse_str = parse_str.replace('\0', "");
+
+        let Some(res_offset) = parse_str.find("TERMINALINFO: ") else {
             return Err(SerialParseErr("No response delimeter found!"));
         };
-        response_data = response_data.split_at(res_offset).1.to_vec();
 
-        if response_data.starts_with("TERMINALINFO: ".as_bytes()) {
-            response_data = response_data
-                .strip_prefix("TERMINALINFO: ".as_bytes())
+        let mut response_str = parse_str.split_at(res_offset).1.to_string();
+        if response_str.starts_with("TERMINALINFO: ") {
+            response_str = response_str
+                .strip_prefix("TERMINALINFO: ")
                 .unwrap()
-                .to_vec();
-            let newline_offset = Self::find_pat(&response_data, b"\n").unwrap();
-            response_data = response_data.split_at(newline_offset).0.to_vec();
-            match String::from_utf8(response_data) {
-                Ok(res) => Ok(res),
-                Err(_) => Err(SerialParseErr("Failed to parse JSON payload into String!")),
-            }
+                .to_string();
+
+            let Some(newline_offset) = response_str.find("\r\n") else {
+                return Err(SerialParseErr("CRLF response delimeter missing!"));
+            };
+            response_str = response_str.split_at(newline_offset).0.to_string();
+            Ok(response_str)
         } else {
             return Err(SerialParseErr("Incorrect prefix of response data!"));
         }
@@ -172,12 +188,12 @@ impl PiShockSerialHandle {
         if response.is_empty() {
             return Err(SerialSendErr("Response was empty!"));
         }
-        let Ok(response) = self.parse_cmd_response(response) else {
-            return Err(SerialSendErr("Failed to parse cmd response!"));
+        let response = match self.parse_cmd_response(response) {
+            Ok(res) => res,
+            Err(_) => {
+                return Err(SerialSendErr("Cmd parsing failure!"));
+            }
         };
-
-        let response = response.replace('\0', "");
-
         return Ok(PiShockSerialCommandResponse::Data(response));
     }
 }
