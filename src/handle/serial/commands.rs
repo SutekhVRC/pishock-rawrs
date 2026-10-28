@@ -98,21 +98,17 @@ impl PiShockCommand {
             Self::AddNetwork { .. } => self.add_network_serialize(),
             Self::RemoveNetwork { .. } => self.remove_network_serialize(),
             Self::Info => {
-                let mut str_data = serde_json::to_string(&PiShockCommandModel::Info {
+                let cmd_model = PiShockCommandModel::Info {
                     cmd: "info".to_string(),
-                })
-                .unwrap();
-                str_data.push_str("\r\n");
-                str_data
+                };
+                prepare_json_cmd_string(&cmd_model)
             }
             Self::TempConnectNetwork { .. } => self.temp_network_connect_serialize(),
             Self::Restart => {
-                let mut str_data = serde_json::to_string(&PiShockCommandModel::Restart {
+                let cmd_model = PiShockCommandModel::Restart {
                     cmd: "restart".to_string(),
-                })
-                .unwrap();
-                str_data.push_str("\r\n");
-                str_data
+                };
+                prepare_json_cmd_string(&cmd_model)
             }
             Self::Operate { .. } => self.operate_serialize(),
         }
@@ -124,9 +120,7 @@ impl PiShockCommand {
             value: cmd_value,
         };
 
-        let mut str_data = serde_json::to_string(&cmd_model).unwrap();
-        str_data.push_str("\r\n");
-        str_data
+        prepare_json_cmd_string(&cmd_model)
     }
 
     fn remove_network_serialize(&self) -> String {
@@ -136,9 +130,7 @@ impl PiShockCommand {
             value: cmd_value,
         };
 
-        let mut str_data = serde_json::to_string(&cmd_model).unwrap();
-        str_data.push_str("\r\n");
-        str_data
+        prepare_json_cmd_string(&cmd_model)
     }
 
     fn temp_network_connect_serialize(&self) -> String {
@@ -148,9 +140,7 @@ impl PiShockCommand {
             value: cmd_value,
         };
 
-        let mut str_data = serde_json::to_string(&cmd_model).unwrap();
-        str_data.push_str("\r\n");
-        str_data
+        prepare_json_cmd_string(&cmd_model)
     }
 
     fn operate_serialize(&self) -> String {
@@ -159,10 +149,7 @@ impl PiShockCommand {
             cmd: "operate".to_string(),
             value: cmd_value,
         };
-
-        let mut str_data = serde_json::to_string(&cmd_model).unwrap();
-        str_data.push_str("\r\n");
-        str_data
+        prepare_json_cmd_string(&cmd_model)
     }
 
     pub fn expect_response(&self) -> bool {
@@ -173,4 +160,10 @@ impl PiShockCommand {
             _ => false,
         }
     }
+}
+
+fn prepare_json_cmd_string(cmd_model: &PiShockCommandModel) -> String {
+    let mut str_data = serde_json::to_string(&cmd_model).unwrap();
+    str_data.push_str("\r\n");
+    str_data
 }
