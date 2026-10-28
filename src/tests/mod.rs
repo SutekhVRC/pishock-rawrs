@@ -77,4 +77,35 @@ mod serial_tests {
         assert_str.push_str("\r\n");
         assert_eq!(json_serd, assert_str);
     }
+    #[test]
+    fn test_operate_beep_serialize() {
+        let op_params = PiShockOperationParams::beep(1337, 5000);
+        let json_serd = PiShockCommand::Operate { op: op_params }.get_cmd_string();
+
+        let mut assert_str =
+            r#"{"cmd":"operate","value":{"id":1337,"op":"beep","duration":5000}}"#.to_string();
+        assert_str.push_str("\r\n");
+        assert_eq!(json_serd, assert_str);
+    }
+    #[test]
+    fn test_operate_shock_serialize() {
+        let op_params = PiShockOperationParams::shock(1337, 5000, 90);
+        let json_serd = PiShockCommand::Operate { op: op_params }.get_cmd_string();
+
+        let mut assert_str =
+            r#"{"cmd":"operate","value":{"id":1337,"op":"shock","duration":5000,"intensity":90}}"#
+                .to_string();
+        assert_str.push_str("\r\n");
+        assert_eq!(json_serd, assert_str);
+    }
+    #[test]
+    fn test_operate_end_serialize() {
+        let op_params = PiShockOperationParams::end(1337);
+        let json_serd = PiShockCommand::Operate { op: op_params }.get_cmd_string();
+
+        let mut assert_str =
+            r#"{"cmd":"operate","value":{"id":1337,"op":"end","duration":0}}"#.to_string();
+        assert_str.push_str("\r\n");
+        assert_eq!(json_serd, assert_str);
+    }
 }
